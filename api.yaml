@@ -1,0 +1,56 @@
+openapi: 3.0.3
+info:
+  title: Instrumented client example
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      operationId: GetUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: verbose
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User missing
+        '503':
+          description: Service unavailable
+  /users:
+    post:
+      operationId: CreateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string

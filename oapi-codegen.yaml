@@ -1,0 +1,10 @@
+package: client
+output: client/client.gen.go
+generate:
+  client: true
+  models: true
+output-options:
+  user-templates:
+    client-with-responses.tmpl: ./templates/client-with-observer.tmpl
+    client-with-responses-original.tmpl: ./upstream/client-with-responses.tmpl
+    observed-client.tmpl: ./templates/observed-client.tmpl

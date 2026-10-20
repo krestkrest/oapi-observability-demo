@@ -1,0 +1,57 @@
+// Observer starts observation and returns a derived context and a completion
+// callback. The callback receives the HTTP status (0 if unavailable) and error.
+// Implementations must support concurrent calls and return a non-nil callback.
+type Observer interface {
+    Start(ctx context.Context, operation string) (context.Context, func(statusCode int, err error))
+}
+
+// ObservedClient instruments only ClientWithResponsesInterface methods.
+type ObservedClient struct {
+    next ClientWithResponsesInterface
+    observer Observer
+}
+
+var _ ClientWithResponsesInterface = (*ObservedClient)(nil)
+
+// NewObservedClient wraps a client with an observer. Both must be non-nil.
+func NewObservedClient(next ClientWithResponsesInterface, observer Observer) *ObservedClient {
+    return &ObservedClient{next: next, observer: observer}
+}
+
+{{range .}}
+{{$opid := .OperationId}}
+{{$hasParams := .RequiresParamObject}}
+{{$pathParams := .PathParams}}
+
+func (c *ObservedClient) {{$opid}}{{if .HasBody}}WithBody{{end}}WithResponse(
+    ctx context.Context{{genParamArgs $pathParams}}{{if $hasParams}}, params *{{$opid}}Params{{end}}{{if .HasBody}}, contentType string, body io.Reader{{end}}, reqEditors ...RequestEditorFn,
+) (response *{{genResponseTypeName $opid}}, err error) {
+    ctx, finish := c.observer.Start(ctx, {{$opid | toGoString}})
+    defer func() {
+        status := 0
+        if response != nil {
+            status = response.StatusCode()
+        }
+        finish(status, err)
+    }()
+    return c.next.{{$opid}}{{if .HasBody}}WithBody{{end}}WithResponse(ctx{{genParamNames $pathParams}}{{if $hasParams}}, params{{end}}{{if .HasBody}}, contentType, body{{end}}, reqEditors...)
+}
+
+{{range .Bodies}}
+{{if .IsSupportedByClient}}
+func (c *ObservedClient) {{$opid}}{{.Suffix}}WithResponse(
+    ctx context.Context{{genParamArgs $pathParams}}{{if $hasParams}}, params *{{$opid}}Params{{end}}, body {{$opid}}{{.NameTag}}RequestBody, reqEditors ...RequestEditorFn,
+) (response *{{genResponseTypeName $opid}}, err error) {
+    ctx, finish := c.observer.Start(ctx, {{$opid | toGoString}})
+    defer func() {
+        status := 0
+        if response != nil {
+            status = response.StatusCode()
+        }
+        finish(status, err)
+    }()
+    return c.next.{{$opid}}{{.Suffix}}WithResponse(ctx{{genParamNames $pathParams}}{{if $hasParams}}, params{{end}}, body, reqEditors...)
+}
+{{end}}
+{{end}}
+{{end}}

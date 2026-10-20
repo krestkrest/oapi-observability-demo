@@ -1,0 +1,22 @@
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build output and local caches
+/bin/
+/dist/
+/.cache/
+*.test
+*.out
+coverage.*
+
+# Local workspace and environment
+/go.work
+/go.work.sum
+.env
+.env.*
+!.env.example
